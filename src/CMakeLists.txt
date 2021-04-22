@@ -1,2 +1,1 @@
-add_executable(ipk-simpleftp-server server.cpp)
-add_executable(ipk-simpleftp-client client.cpp)
+add_executable(ipk-sniffer main.cpp)
