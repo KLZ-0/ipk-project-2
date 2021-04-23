@@ -21,8 +21,9 @@ void Sniffer::print_interfaces() {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_if_t *dev;
 
+	// NOTE: pcap_findalldevs in C++ does some weird allocations which cause SyscallParam warnings in valgrind
 	if (pcap_findalldevs(&dev, errbuf) == PCAP_ERROR) {
-		std::cerr << "PCAP eror: " << errbuf << std::endl;
+		std::cerr << "PCAP error: " << errbuf << std::endl;
 		return;
 	}
 
@@ -37,4 +38,14 @@ void Sniffer::print_interfaces() {
 
 void Sniffer::run() {
 	config->print();
+	char errbuf[PCAP_ERRBUF_SIZE];
+
+	pcap_t *pcap = pcap_create(config->interface.c_str(), errbuf);
+	if (pcap == nullptr) {
+		throw std::runtime_error(errbuf);
+	}
+
+	pcap_close(pcap);
+
+	throw std::runtime_error("fuck");
 }

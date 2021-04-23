@@ -4,6 +4,13 @@
 
 int main(int argc, char *argv[]) {
 	Sniffer sniffer = Sniffer(argc, argv);
-	sniffer.run();
-	return 0;
+
+	try {
+		sniffer.run();
+	} catch (std::runtime_error &e) {
+		std::cerr << "Error: " << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
 }
