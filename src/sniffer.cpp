@@ -45,7 +45,14 @@ void Sniffer::run() {
 		throw std::runtime_error(errbuf);
 	}
 
-	pcap_close(pcap);
+	int pa = pcap_activate(pcap);
+	if (pa < 0) {
+		throw std::runtime_error(pcap_geterr(pcap));
+	} else if (pa > 0) {
+		std::cerr << "PCAP warning: " << pcap_geterr(pcap) << std::endl;
+	}
 
-	throw std::runtime_error("fuck");
+	std::cout << "No error" << std::endl;
+
+	pcap_close(pcap);
 }
