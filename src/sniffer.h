@@ -9,7 +9,7 @@ class Sniffer
 private:
 	Config *config;
 
-	void print_interfaces();
+	static void print_interfaces();
 
 public:
 	Sniffer(int argc, char *argv[]);

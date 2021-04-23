@@ -6,7 +6,7 @@
 class Config
 {
 private:
-	std::string interface = "all";
+	std::string interface = "any";
 	int port = -1; // default ports all
 	bool tcp = false;
 	bool udp = false;
