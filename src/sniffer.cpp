@@ -6,15 +6,11 @@
 
 Sniffer::Sniffer(int argc, char **argv) {
 	config = new Config(argc, argv);
-	if (config->only_interfaces()) {
+	if (config->only_interfaces) {
 		print_interfaces();
 		delete config;
 		std::exit(EXIT_SUCCESS);
 	}
-}
-
-void Sniffer::run() {
-	config->print();
 }
 
 Sniffer::~Sniffer() {
@@ -37,4 +33,8 @@ void Sniffer::print_interfaces() {
 	}
 
 	pcap_freealldevs(dev);
+}
+
+void Sniffer::run() {
+	config->print();
 }

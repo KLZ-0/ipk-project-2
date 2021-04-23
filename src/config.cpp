@@ -28,7 +28,7 @@ void Config::parse(int argc, char *argv[]) {
 			arg = arg + 2;
 			if (std::strcmp(arg, "interface") == 0) {
 				if (nextarg == nullptr || nextarg[0] == '-') {
-					only_print_interfaces = true;
+					only_interfaces = true;
 					return;
 				}
 				interface = nextarg;
@@ -53,7 +53,7 @@ void Config::parse(int argc, char *argv[]) {
 			switch (arg[1]) {
 				case 'i':
 					if (nextarg == nullptr || nextarg[0] == '-') {
-						only_print_interfaces = true;
+						only_interfaces = true;
 						return;
 					}
 					interface = nextarg;
@@ -107,8 +107,4 @@ void Config::print() {
 	std::cerr << "udp: " << udp << std::endl;
 	std::cerr << "arp: " << arp << std::endl;
 	std::cerr << "icmp: " << icmp << std::endl;
-}
-
-bool Config::only_interfaces() {
-	return only_print_interfaces;
 }

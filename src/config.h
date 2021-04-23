@@ -6,6 +6,12 @@
 class Config
 {
 private:
+	void parse(int argc, char *argv[]);
+
+public:
+	Config(int argc, char *argv[]);
+	void print();
+
 	std::string interface = "any";
 	int port = -1; // default ports all
 	bool tcp = false;
@@ -14,15 +20,7 @@ private:
 	bool icmp = false;
 	int num = 1; // default 1 packet
 
-	bool only_print_interfaces = false;
-
-	void parse(int argc, char *argv[]);
-
-public:
-	Config(int argc, char *argv[]);
-	void print();
-
-	bool only_interfaces();
+	bool only_interfaces = false;
 };
 
 
