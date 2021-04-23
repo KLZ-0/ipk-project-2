@@ -3,8 +3,7 @@
 #include "sniffer.h"
 
 int main(int argc, char *argv[]) {
-	auto *sniffer = new Sniffer(argc, argv);
-	sniffer->run();
-	delete sniffer;
+	Sniffer sniffer = Sniffer(argc, argv);
+	sniffer.run();
 	return 0;
 }

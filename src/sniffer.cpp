@@ -3,14 +3,14 @@
 
 Sniffer::Sniffer(int argc, char **argv) {
 	config = new Config(argc, argv);
+	if (config->only_interfaces()) {
+		print_interfaces();
+		delete config;
+		std::exit(EXIT_SUCCESS);
+	}
 }
 
 void Sniffer::run() {
-	if (config->only_interfaces()) {
-		print_interfaces();
-		return;
-	}
-
 	config->print();
 }
 
