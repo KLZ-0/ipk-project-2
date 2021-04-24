@@ -1,6 +1,5 @@
 #include <iostream>
 #include <ifaddrs.h>
-#include <net/if.h>
 #include <pcap.h>
 #include <functional>
 #include <net/ethernet.h>
@@ -8,6 +7,8 @@
 #include <netinet/ether.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/in.h>
+#include <netinet/ether.h>
+#include <pcap/sll.h>
 
 Sniffer::Sniffer(int argc, char **argv) {
 	config = new Config(argc, argv);
@@ -63,17 +64,54 @@ void Sniffer::run() {
 		std::cerr << "PCAP warning: " << pcap_geterr(pcap) << std::endl;
 	}
 
-	if (pcap_set_datalink(pcap, DLT_EN10MB)) {
-		pcap_close(pcap);
-		throw std::runtime_error(pcap_geterr(pcap));
+	header_type = pcap_datalink(pcap);
+	switch (header_type) {
+		case DLT_EN10MB:
+		case DLT_LINUX_SLL2:
+		case DLT_LINUX_SLL:
+			break;
+		default:
+			pcap_close(pcap);
+			throw std::runtime_error("unsupported link-layer header type");
 	}
+
+//	if (pcap_set_datalink(pcap, DLT_EN10MB)) {
+//		pcap_close(pcap);
+//		throw std::runtime_error(pcap_geterr(pcap));
+//	}
+
+	struct bpf_program program = set_filter(pcap);
 
 	if (pcap_loop(pcap, config->num, packet_callback, (u_char*) this)) {
+		pcap_freecode(&program);
 		pcap_close(pcap);
 		throw std::runtime_error(pcap_geterr(pcap));
 	}
 
+	pcap_freecode(&program);
 	pcap_close(pcap);
+}
+
+struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
+	std::string program_str = R"(ether proto (\arp or \ip or \ip6) && (tcp || udp || icmp))";
+
+	if (config->port >= 0) {
+		program_str += "&& port " + std::to_string(config->port);
+	}
+
+	struct bpf_program program = {0};
+	if (pcap_compile(pcap, &program, program_str.c_str(), 0, PCAP_NETMASK_UNKNOWN)) {
+		pcap_close(pcap);
+		throw std::runtime_error(pcap_geterr(pcap));
+	}
+
+	if (pcap_setfilter(pcap, &program)) {
+		pcap_freecode(&program);
+		pcap_close(pcap);
+		throw std::runtime_error(pcap_geterr(pcap));
+	}
+
+	return program;
 }
 
 void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, const u_char *payload) {
@@ -81,8 +119,23 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 
 	std::cout << "Packet (";
 
-	auto *eth_header = (struct ether_header *) payload;
-	uint16_t packet_type = ntohs(eth_header->ether_type);
+	// also remove header by incrementing the data pointer
+	uint16_t packet_type = 0;
+	if (sniffer->header_type == DLT_EN10MB) {
+		auto *eth_header = (struct ether_header *) payload;
+		packet_type = ntohs(eth_header->ether_type);
+		payload += sizeof(struct ether_header);
+	} else if (sniffer->header_type == DLT_LINUX_SLL) {
+		auto *eth_header = (struct sll_header *) payload;
+		packet_type = ntohs(eth_header->sll_protocol);
+		payload += sizeof(struct sll_header);
+	} else if (sniffer->header_type == DLT_LINUX_SLL2) {
+		auto *eth_header = (struct sll2_header *) payload;
+		packet_type = ntohs(eth_header->sll2_protocol);
+		payload += sizeof(struct sll2_header);
+	} else {
+		std::cerr << "warning: unsupported link-layer header type" << std::endl;
+	}
 
 	switch (packet_type) {
 		case ETHERTYPE_IP:
@@ -94,20 +147,14 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		case ETHERTYPE_ARP:
 			std::cout << "ARP";
 			break;
-		case ETHERTYPE_REVARP:
-			std::cout << "Reverse ARP";
-			break;
 		default:
-			std::cout << "Other";
+			std::cout << "Other (" << packet_type << ")";
 	}
 
 	std::cout << "), size: " << header->caplen << "/" << header->len << std::endl;
 
-	std::cout << "from: " << ether_ntoa((struct ether_addr *) eth_header->ether_shost) << std::endl;
-	std::cout << "to: " << ether_ntoa((struct ether_addr *) eth_header->ether_dhost) << std::endl;
-
-	// remove header by incrementing the data pointer
-	payload += ETH_HLEN;
+//	std::cout << "from: " << ether_ntoa((struct ether_addr *) eth_header->ether_shost) << std::endl;
+//	std::cout << "to: " << ether_ntoa((struct ether_addr *) eth_header->ether_dhost) << std::endl;
 
 	std::cout << "protocol: ";
 
