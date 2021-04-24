@@ -93,11 +93,43 @@ void Sniffer::run() {
 }
 
 struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
-	std::string program_str = R"(ether proto (\arp or \ip or \ip6) && (tcp || udp || icmp))";
+	// TODO: Optimize this
+	std::string program_str;
+
+	if (config->arp) {
+		program_str = "arp";
+	}
+
+	if (config->icmp) {
+		if (!program_str.empty()) {
+			program_str += " or ";
+		}
+		program_str += "icmp";
+	}
+
+	if (config->tcp) {
+		if (!program_str.empty()) {
+			program_str += " or ";
+		}
+		program_str += "tcp";
+	}
+
+	if (config->udp) {
+		if (!program_str.empty()) {
+			program_str += " or ";
+		}
+		program_str += "udp";
+	}
+
+	if (program_str.empty()) {
+		program_str = "arp or icmp or tcp or udp";
+	}
 
 	if (config->port >= 0) {
-		program_str += "&& port " + std::to_string(config->port);
+		program_str += " && port " + std::to_string(config->port);
 	}
+
+	std::cerr << "program string: " << program_str << std::endl;
 
 	struct bpf_program program = {0};
 	if (pcap_compile(pcap, &program, program_str.c_str(), 0, PCAP_NETMASK_UNKNOWN)) {
