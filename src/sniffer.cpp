@@ -4,10 +4,9 @@
 #include <functional>
 #include <net/ethernet.h>
 #include "sniffer.h"
-#include <netinet/ether.h>
-#include <netinet/ip_icmp.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
 #include <netinet/in.h>
-#include <netinet/ether.h>
 #include <pcap/sll.h>
 
 Sniffer::Sniffer(int argc, char **argv) {
@@ -169,18 +168,27 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		std::cerr << "warning: unsupported link-layer header type" << std::endl;
 	}
 
-	switch (packet_type) {
-		case ETHERTYPE_IP:
-			std::cout << "IP";
-			break;
-		case ETHERTYPE_IPV6:
-			std::cout << "IPv6";
-			break;
-		case ETHERTYPE_ARP:
-			std::cout << "ARP";
-			break;
-		default:
-			std::cout << "Other (" << packet_type << ")";
+	// link layer protocols
+
+	uint8_t packet_prot = 0;
+	char src_addr[INET6_ADDRSTRLEN] = {0};
+	char dst_addr[INET6_ADDRSTRLEN] = {0};
+	if (packet_type == ETHERTYPE_IP) {
+		auto *packet = (struct iphdr *) payload;
+		packet_prot = packet->protocol;
+		inet_ntop(AF_INET, &packet->saddr, src_addr, INET6_ADDRSTRLEN);
+		inet_ntop(AF_INET, &packet->daddr, dst_addr, INET6_ADDRSTRLEN);
+		std::cout << "IP";
+	} else if (packet_type == ETHERTYPE_IPV6) {
+		auto *packet = (struct ip6_hdr *) payload;
+		packet_prot = packet->ip6_ctlun.ip6_un1.ip6_un1_nxt;
+		inet_ntop(AF_INET6, &packet->ip6_src, src_addr, INET6_ADDRSTRLEN);
+		inet_ntop(AF_INET6, &packet->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
+		std::cout << "IPv6";
+	} else if (packet_type == ETHERTYPE_ARP) {
+		std::cout << "ARP";
+	} else {
+		std::cout << "Other (" << packet_type << ")";
 	}
 
 	std::cout << "), size: " << header->caplen << "/" << header->len << std::endl;
@@ -190,14 +198,16 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 
 	std::cout << "protocol: ";
 
-	auto *ip_packet = (struct ip *) payload;
-	switch (ip_packet->ip_p) {
+	// transport layer protocols
+
+	switch (packet_prot) {
 		case IPPROTO_TCP:
 			std::cout << "TCP";
 			break;
 		case IPPROTO_UDP:
 			std::cout << "UDP";
 			break;
+		case IPPROTO_ICMPV6:
 		case IPPROTO_ICMP:
 			std::cout << "ICMP";
 			break;
@@ -208,7 +218,7 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 
 	std::cout << std::endl;
 
-	std::cout << "from: " << inet_ntoa(ip_packet->ip_src) << std::endl;
-	std::cout << "to: " << inet_ntoa(ip_packet->ip_dst) << std::endl;
+	std::cout << "from: " << src_addr << std::endl;
+	std::cout << "to: " << dst_addr << std::endl;
 	std::cout << std::endl;
 }
