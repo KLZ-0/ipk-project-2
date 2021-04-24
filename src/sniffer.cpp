@@ -103,7 +103,7 @@ struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
 		if (!program_str.empty()) {
 			program_str += " or ";
 		}
-		program_str += "icmp";
+		program_str += "icmp or icmp6";
 	}
 
 	if (config->tcp) {
