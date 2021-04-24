@@ -5,8 +5,9 @@
 #include <functional>
 #include <net/ethernet.h>
 #include "sniffer.h"
-
+#include <netinet/ether.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/in.h>
 
 Sniffer::Sniffer(int argc, char **argv) {
 	config = new Config(argc, argv);
@@ -48,7 +49,7 @@ void Sniffer::run() {
 		throw std::runtime_error(errbuf);
 	}
 
-	pcap_set_snaplen(pcap, 16);
+	pcap_set_snaplen(pcap, 1024);
 	pcap_set_promisc(pcap, 0);
 	pcap_set_rfmon(pcap, 0);
 	pcap_set_timeout(pcap, 0);
@@ -101,4 +102,34 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 	}
 
 	std::cout << "), size: " << header->caplen << "/" << header->len << std::endl;
+
+	std::cout << "from: " << ether_ntoa((struct ether_addr *) eth_header->ether_shost) << std::endl;
+	std::cout << "to: " << ether_ntoa((struct ether_addr *) eth_header->ether_dhost) << std::endl;
+
+	// remove header by incrementing the data pointer
+	payload += ETH_HLEN;
+
+	std::cout << "protocol: ";
+
+	auto *ip_packet = (struct ip *) payload;
+	switch (ip_packet->ip_p) {
+		case IPPROTO_TCP:
+			std::cout << "TCP";
+			break;
+		case IPPROTO_UDP:
+			std::cout << "UDP";
+			break;
+		case IPPROTO_ICMP:
+			std::cout << "ICMP";
+			break;
+		default:
+			std::cout << "other";
+			break;
+	}
+
+	std::cout << std::endl;
+
+	std::cout << "from: " << inet_ntoa(ip_packet->ip_src) << std::endl;
+	std::cout << "to: " << inet_ntoa(ip_packet->ip_dst) << std::endl;
+	std::cout << std::endl;
 }
