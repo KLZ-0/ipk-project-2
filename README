@@ -1,0 +1,31 @@
+IPK project 2 - packet sniffer
+catch, identify and dump network packets
+
+------
+
+Compilation:
+make
+
+Help:
+./ipk-sniffer -h
+or
+./ipk-sniffer --help
+
+Run (list available interfaces):
+./ipk-sniffer -i
+
+Run (fetch one packet, any device, any port, any protocol):
+./ipk-sniffer
+
+------
+
+List of submitted files:
+src/
+src/main.cpp
+src/config.h
+src/sniffer.h
+src/config.cpp
+src/sniffer.cpp
+Makefile
+README
+manual.pdf
