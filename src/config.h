@@ -7,6 +7,7 @@ class Config
 {
 private:
 	void parse(int argc, char *argv[]);
+	static void print_help();
 
 public:
 	Config(int argc, char *argv[]);

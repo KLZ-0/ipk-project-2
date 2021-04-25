@@ -1,8 +1,8 @@
 #ifndef IPK_SNIFFER_SNIFFER_H
 #define IPK_SNIFFER_SNIFFER_H
 
-
 #include "config.h"
+#include <pcap/pcap.h>
 
 class Sniffer
 {
