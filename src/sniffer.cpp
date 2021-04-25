@@ -264,17 +264,29 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 	// print the packet data
 	// offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
 
-
 	for (unsigned int offset = 0; offset < header->len; offset += DATA_PER_LINE) {
-		std::cout << "0x" << std::hex << std::setfill('0') << std::setw(4) << offset << ": ";
-
+		printf("0x%04x: ", offset);
 		unsigned int remaining = header->len - offset;
+
+		// hex
 		for (unsigned int in_offset = 0; in_offset < DATA_PER_LINE && in_offset < remaining; in_offset++) {
 			if (in_offset % DUMP_CHUNKSIZE == 0) {
 				std::cout << " ";
 			}
-			std::cout << std::hex << std::setfill('0') << std::setw(2) << (int) data_ptr[offset + in_offset] << " ";
+			printf("%02x ", data_ptr[offset + in_offset]);
 		}
+
+		// printable
+		std::cout << " ";
+		for (unsigned int in_offset = 0; in_offset < DATA_PER_LINE && in_offset < remaining; in_offset++) {
+			if (isprint(data_ptr[offset + in_offset])) {
+				std::cout << data_ptr[offset + in_offset];
+			} else {
+				std::cout << ".";
+			}
+		}
+
 		std::cout << std::endl;
 	}
+	std::cout << std::endl;
 }
