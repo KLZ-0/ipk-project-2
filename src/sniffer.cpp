@@ -150,7 +150,7 @@ struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
 	return program;
 }
 
-void print_time(struct timeval timeval) {
+void Sniffer::print_time(struct timeval timeval) {
 	struct tm *timestruct = localtime(&timeval.tv_sec);
 	char buf[RFC3339_BUFLEN];
 	size_t l;
