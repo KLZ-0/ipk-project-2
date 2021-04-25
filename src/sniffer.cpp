@@ -3,6 +3,7 @@
 #include <pcap.h>
 #include <functional>
 #include <net/ethernet.h>
+#include <net/if_arp.h>
 #include "sniffer.h"
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
@@ -55,6 +56,7 @@ void Sniffer::run() {
 		throw std::runtime_error(errbuf);
 	}
 
+	// TODO: magic number
 	pcap_set_snaplen(pcap, 1024);
 	pcap_set_promisc(pcap, 0);
 	pcap_set_rfmon(pcap, 0);
@@ -168,14 +170,6 @@ void print_time(struct timeval timeval) {
 void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, const u_char *payload) {
 	auto *sniffer = (Sniffer*) user;
 
-//	čas IP : port > IP : port, length délka
-//	offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
-
-	print_time(header->ts);
-	std::cout << std::endl;
-
-	std::cout << "Packet (";
-
 	// also remove header by incrementing the data pointer
 	uint16_t packet_type = 0;
 	if (sniffer->header_type == DLT_EN10MB) {
@@ -194,7 +188,7 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		std::cerr << "warning: unsupported link-layer header type" << std::endl;
 	}
 
-	// link layer protocols
+	// link layer
 
 	uint8_t packet_prot = 0;
 	char src_addr[INET6_ADDRSTRLEN] = {0};
@@ -204,67 +198,55 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		packet_prot = packet->protocol;
 		inet_ntop(AF_INET, &packet->saddr, src_addr, INET6_ADDRSTRLEN);
 		inet_ntop(AF_INET, &packet->daddr, dst_addr, INET6_ADDRSTRLEN);
-		std::cout << "IP";
 		payload += sizeof(struct iphdr);
 	} else if (packet_type == ETHERTYPE_IPV6) {
 		auto *packet = (struct ip6_hdr *) payload;
 		packet_prot = packet->ip6_ctlun.ip6_un1.ip6_un1_nxt;
 		inet_ntop(AF_INET6, &packet->ip6_src, src_addr, INET6_ADDRSTRLEN);
 		inet_ntop(AF_INET6, &packet->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
-		std::cout << "IPv6";
 		payload += sizeof(struct ip6_hdr);
 	} else if (packet_type == ETHERTYPE_ARP) {
-		std::cout << "ARP";
+		payload += sizeof(struct arphdr);
 	} else {
-		std::cout << "Other (" << packet_type << ")";
+		std::cerr << "warning: unsupported header type" << std::endl;
 	}
 
-	std::cout << "), size: " << header->caplen << "/" << header->len << std::endl;
-
-//	std::cout << "from: " << ether_ntoa((struct ether_addr *) eth_header->ether_shost) << std::endl;
-//	std::cout << "to: " << ether_ntoa((struct ether_addr *) eth_header->ether_dhost) << std::endl;
-
-	std::cout << "protocol: ";
-
-	// transport layer protocols
+	// transport layer
 	uint16_t *sport = nullptr;
 	uint16_t *dport = nullptr;
 
 	switch (packet_prot) {
 		case IPPROTO_TCP:
-			std::cout << "TCP";
 			sport = &((struct tcphdr *) payload)->th_sport;
 			dport = &((struct tcphdr *) payload)->th_dport;
 			break;
 		case IPPROTO_UDP:
-			std::cout << "UDP";
 			sport = &((struct udphdr *) payload)->uh_sport;
 			dport = &((struct udphdr *) payload)->uh_dport;
 			break;
 		case IPPROTO_ICMPV6:
-			std::cout << "ICMPv6";
-			break;
 		case IPPROTO_ICMP:
-			std::cout << "ICMP";
-			break;
 		default:
-			std::cout << "other";
 			break;
 	}
 
-	std::cout << std::endl;
+	// print the packet info
+	// čas IP : port > IP : port, length délka
 
-	std::cout << "from: " << src_addr;
+	print_time(header->ts);
 
+	std::cout << " " << src_addr;
 	if (sport != nullptr) {
 		std::cout << " : " << *sport;
 	}
-	std::cout << std::endl;
 
-	std::cout << "to: " << dst_addr;
+	std::cout << " > " << dst_addr;
 	if (dport != nullptr) {
 		std::cout << " : " << *dport;
 	}
-	std::cout << std::endl;
 
+	std::cout << ", length " << header->len << std::endl;
+
+	// print the packet data
+	// offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
 }
