@@ -248,12 +248,12 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 
 	std::cout << " " << src_addr;
 	if (sport != nullptr) {
-		std::cout << " : " << *sport;
+		std::cout << " : " << ntohs(*sport);
 	}
 
 	std::cout << " > " << dst_addr;
 	if (dport != nullptr) {
-		std::cout << " : " << *dport;
+		std::cout << " : " << ntohs(*dport);
 	}
 
 	std::cout << ", length " << header->len << " bytes" << std::endl;
