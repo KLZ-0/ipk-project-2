@@ -35,15 +35,15 @@ public:
 	 */
 	void print();
 
-	std::string interface = "any";
-	int port = -1; // default ports all
-	bool tcp = false;
-	bool udp = false;
-	bool arp = false;
-	bool icmp = false;
-	int num = 1; // default 1 packet
+	std::string interface = "any"; ///< listening interface
+	int port = -1; ///< listening port (-1 == any)
+	bool tcp = false; ///< only TCP
+	bool udp = false; ///< only UDP
+	bool arp = false; ///< only ARP
+	bool icmp = false; ///< only ICMP
+	int num = 1; ///< number of captured packets
 
-	bool only_interfaces = false;
+	bool only_interfaces = false; ///< only show interfaces and exit
 };
 
 
