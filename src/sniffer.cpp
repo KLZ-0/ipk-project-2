@@ -132,6 +132,7 @@ struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
 	}
 
 	if (config->port >= 0) {
+		program_str = "(" + program_str + ")";
 		program_str += " && port " + std::to_string(config->port);
 	}
 
