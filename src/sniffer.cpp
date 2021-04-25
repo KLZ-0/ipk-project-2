@@ -55,6 +55,8 @@ void Sniffer::print_interfaces() {
 void Sniffer::run() {
 	char errbuf[PCAP_ERRBUF_SIZE];
 
+	// initialize pcap
+
 	pcap_t *pcap = pcap_create(config->interface.c_str(), errbuf);
 	if (pcap == nullptr) {
 		throw std::runtime_error(errbuf);
@@ -74,6 +76,8 @@ void Sniffer::run() {
 		std::cerr << "PCAP warning: " << pcap_geterr(pcap) << std::endl;
 	}
 
+	// check for unsupported datalink header type
+
 	header_type = pcap_datalink(pcap);
 	switch (header_type) {
 		case DLT_EN10MB:
@@ -85,13 +89,19 @@ void Sniffer::run() {
 			throw std::runtime_error("unsupported datalink header type");
 	}
 
+	// apply filter
+
 	struct bpf_program program = set_filter(pcap);
+
+	// loop
 
 	if (pcap_loop(pcap, config->num, packet_callback, (u_char*) this)) {
 		pcap_freecode(&program);
 		pcap_close(pcap);
 		throw std::runtime_error(pcap_geterr(pcap));
 	}
+
+	// cleanup
 
 	pcap_freecode(&program);
 	pcap_close(pcap);
