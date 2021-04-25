@@ -8,6 +8,10 @@
 #include <netinet/ip6.h>
 #include <netinet/in.h>
 #include <pcap/sll.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
 
 #define RFC3339_BUFLEN 128
 
@@ -201,12 +205,14 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		inet_ntop(AF_INET, &packet->saddr, src_addr, INET6_ADDRSTRLEN);
 		inet_ntop(AF_INET, &packet->daddr, dst_addr, INET6_ADDRSTRLEN);
 		std::cout << "IP";
+		payload += sizeof(struct iphdr);
 	} else if (packet_type == ETHERTYPE_IPV6) {
 		auto *packet = (struct ip6_hdr *) payload;
 		packet_prot = packet->ip6_ctlun.ip6_un1.ip6_un1_nxt;
 		inet_ntop(AF_INET6, &packet->ip6_src, src_addr, INET6_ADDRSTRLEN);
 		inet_ntop(AF_INET6, &packet->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
 		std::cout << "IPv6";
+		payload += sizeof(struct ip6_hdr);
 	} else if (packet_type == ETHERTYPE_ARP) {
 		std::cout << "ARP";
 	} else {
@@ -221,15 +227,23 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 	std::cout << "protocol: ";
 
 	// transport layer protocols
+	uint16_t *sport = nullptr;
+	uint16_t *dport = nullptr;
 
 	switch (packet_prot) {
 		case IPPROTO_TCP:
 			std::cout << "TCP";
+			sport = &((struct tcphdr *) payload)->th_sport;
+			dport = &((struct tcphdr *) payload)->th_dport;
 			break;
 		case IPPROTO_UDP:
 			std::cout << "UDP";
+			sport = &((struct udphdr *) payload)->uh_sport;
+			dport = &((struct udphdr *) payload)->uh_dport;
 			break;
 		case IPPROTO_ICMPV6:
+			std::cout << "ICMPv6";
+			break;
 		case IPPROTO_ICMP:
 			std::cout << "ICMP";
 			break;
@@ -240,7 +254,17 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 
 	std::cout << std::endl;
 
-	std::cout << "from: " << src_addr << std::endl;
-	std::cout << "to: " << dst_addr << std::endl;
+	std::cout << "from: " << src_addr;
+
+	if (sport != nullptr) {
+		std::cout << " : " << *sport;
+	}
 	std::cout << std::endl;
+
+	std::cout << "to: " << dst_addr;
+	if (dport != nullptr) {
+		std::cout << " : " << *dport;
+	}
+	std::cout << std::endl;
+
 }
