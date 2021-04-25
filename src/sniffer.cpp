@@ -13,6 +13,8 @@
 #include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
+#include <netinet/ether.h>
+#include <iomanip>
 
 #define RFC3339_BUFLEN 128
 
@@ -156,7 +158,8 @@ void print_time(struct timeval timeval) {
 		return;
 	}
 
-	std::cout << buf << "." << std::to_string(timeval.tv_usec % 1000);
+	std::cout << buf << ".";
+	std::cout << std::setfill('0') << std::setw(3) << timeval.tv_usec % 1000;
 
 	l = strftime(buf, RFC3339_BUFLEN - 1, "%z", timestruct);
 	if (l != 5) {
@@ -170,19 +173,19 @@ void print_time(struct timeval timeval) {
 void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, const u_char *payload) {
 	auto *sniffer = (Sniffer*) user;
 
+	char src_addr[INET6_ADDRSTRLEN] = {0};
+	char dst_addr[INET6_ADDRSTRLEN] = {0};
+
 	// also remove header by incrementing the data pointer
-	uint16_t packet_type = 0;
+	struct ether_header eth_header = {0};
 	if (sniffer->header_type == DLT_EN10MB) {
-		auto *eth_header = (struct ether_header *) payload;
-		packet_type = ntohs(eth_header->ether_type);
+		eth_header = *(struct ether_header *) payload;
 		payload += sizeof(struct ether_header);
 	} else if (sniffer->header_type == DLT_LINUX_SLL) {
-		auto *eth_header = (struct sll_header *) payload;
-		packet_type = ntohs(eth_header->sll_protocol);
+		eth_header.ether_type = ((struct sll_header *) payload)->sll_protocol;
 		payload += sizeof(struct sll_header);
 	} else if (sniffer->header_type == DLT_LINUX_SLL2) {
-		auto *eth_header = (struct sll2_header *) payload;
-		packet_type = ntohs(eth_header->sll2_protocol);
+		eth_header.ether_type = ((struct sll2_header *) payload)->sll2_protocol;
 		payload += sizeof(struct sll2_header);
 	} else {
 		std::cerr << "warning: unsupported link-layer header type" << std::endl;
@@ -190,9 +193,8 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 
 	// link layer
 
+	uint16_t packet_type = ntohs(eth_header.ether_type);
 	uint8_t packet_prot = 0;
-	char src_addr[INET6_ADDRSTRLEN] = {0};
-	char dst_addr[INET6_ADDRSTRLEN] = {0};
 	if (packet_type == ETHERTYPE_IP) {
 		auto *packet = (struct iphdr *) payload;
 		packet_prot = packet->protocol;
@@ -206,6 +208,11 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		inet_ntop(AF_INET6, &packet->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
 		payload += sizeof(struct ip6_hdr);
 	} else if (packet_type == ETHERTYPE_ARP) {
+		char *tmp;
+		tmp = ether_ntoa((struct ether_addr *) &eth_header.ether_shost);
+		strncpy(src_addr, tmp, INET6_ADDRSTRLEN);
+		tmp = ether_ntoa((struct ether_addr *) &eth_header.ether_dhost);
+		strncpy(dst_addr, tmp, INET6_ADDRSTRLEN);
 		payload += sizeof(struct arphdr);
 	} else {
 		std::cerr << "warning: unsupported header type" << std::endl;
@@ -219,13 +226,17 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		case IPPROTO_TCP:
 			sport = &((struct tcphdr *) payload)->th_sport;
 			dport = &((struct tcphdr *) payload)->th_dport;
+			payload += sizeof(struct tcphdr);
 			break;
 		case IPPROTO_UDP:
 			sport = &((struct udphdr *) payload)->uh_sport;
 			dport = &((struct udphdr *) payload)->uh_dport;
+			payload += sizeof(struct udphdr);
 			break;
 		case IPPROTO_ICMPV6:
+			payload += sizeof(struct icmp6_hdr);
 		case IPPROTO_ICMP:
+			payload += sizeof(struct icmphdr);
 		default:
 			break;
 	}
