@@ -76,11 +76,6 @@ void Sniffer::run() {
 			throw std::runtime_error("unsupported link-layer header type");
 	}
 
-//	if (pcap_set_datalink(pcap, DLT_EN10MB)) {
-//		pcap_close(pcap);
-//		throw std::runtime_error(pcap_geterr(pcap));
-//	}
-
 	struct bpf_program program = set_filter(pcap);
 
 	if (pcap_loop(pcap, config->num, packet_callback, (u_char*) this)) {
@@ -130,8 +125,6 @@ struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
 		program_str += " && port " + std::to_string(config->port);
 	}
 
-	std::cerr << "program string: " << program_str << std::endl;
-
 	struct bpf_program program = {0};
 	if (pcap_compile(pcap, &program, program_str.c_str(), 0, PCAP_NETMASK_UNKNOWN)) {
 		pcap_close(pcap);
@@ -174,7 +167,6 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 //	čas IP : port > IP : port, length délka
 //	offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
 
-	std::cout << "Timestamp: ";
 	print_time(header->ts);
 	std::cout << std::endl;
 
