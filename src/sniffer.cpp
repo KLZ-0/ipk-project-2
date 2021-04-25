@@ -229,17 +229,13 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		case IPPROTO_TCP:
 			sport = &((struct tcphdr *) payload)->th_sport;
 			dport = &((struct tcphdr *) payload)->th_dport;
-			payload += sizeof(struct tcphdr);
 			break;
 		case IPPROTO_UDP:
 			sport = &((struct udphdr *) payload)->uh_sport;
 			dport = &((struct udphdr *) payload)->uh_dport;
-			payload += sizeof(struct udphdr);
 			break;
 		case IPPROTO_ICMPV6:
-			payload += sizeof(struct icmp6_hdr);
 		case IPPROTO_ICMP:
-			payload += sizeof(struct icmphdr);
 		default:
 			break;
 	}
