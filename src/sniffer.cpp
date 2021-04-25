@@ -82,7 +82,7 @@ void Sniffer::run() {
 			break;
 		default:
 			pcap_close(pcap);
-			throw std::runtime_error("unsupported link-layer header type");
+			throw std::runtime_error("unsupported datalink header type");
 	}
 
 	struct bpf_program program = set_filter(pcap);
@@ -98,7 +98,6 @@ void Sniffer::run() {
 }
 
 struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
-	// TODO: Optimize this
 	std::string program_str;
 
 	if (config->arp) {
@@ -179,7 +178,8 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 	char src_addr[INET6_ADDRSTRLEN] = {0};
 	char dst_addr[INET6_ADDRSTRLEN] = {0};
 
-	// also remove header by incrementing the data pointer
+	// Data Link Layer
+
 	struct ether_header eth_header = {0};
 	if (sniffer->header_type == DLT_EN10MB) {
 		eth_header = *(struct ether_header *) payload;
@@ -190,11 +190,9 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 	} else if (sniffer->header_type == DLT_LINUX_SLL2) {
 		eth_header.ether_type = ((struct sll2_header *) payload)->sll2_protocol;
 		payload += sizeof(struct sll2_header);
-	} else {
-		std::cerr << "warning: unsupported link-layer header type" << std::endl;
 	}
 
-	// link layer
+	// EtherType
 
 	uint16_t packet_type = ntohs(eth_header.ether_type);
 	uint8_t packet_prot = 0;
@@ -218,13 +216,13 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		strncpy(dst_addr, tmp, INET6_ADDRSTRLEN);
 		payload += sizeof(struct arphdr);
 	} else {
-		std::cerr << "warning: unsupported header type" << std::endl;
+		std::cerr << "warning: unsupported EtherType" << std::endl;
 	}
 
-	// transport layer
+	// Transport Layer
+
 	uint16_t *sport = nullptr;
 	uint16_t *dport = nullptr;
-
 	switch (packet_prot) {
 		case IPPROTO_TCP:
 			sport = &((struct tcphdr *) payload)->th_sport;

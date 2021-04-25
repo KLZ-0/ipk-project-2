@@ -14,7 +14,7 @@ private:
 	 * determined by pcap_datalink
 	 * used in packet callback when determining which header the packet is encapsulated in
 	 */
-	int header_type;
+	int header_type = 0;
 
 	/**
 	 * List interfaces which can be opened by pcap_create to stdout
