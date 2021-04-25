@@ -181,15 +181,22 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 	// Data Link Layer
 
 	struct ether_header eth_header = {0};
-	if (sniffer->header_type == DLT_EN10MB) {
-		eth_header = *(struct ether_header *) payload;
-		payload += sizeof(struct ether_header);
-	} else if (sniffer->header_type == DLT_LINUX_SLL) {
-		eth_header.ether_type = ((struct sll_header *) payload)->sll_protocol;
-		payload += sizeof(struct sll_header);
-	} else if (sniffer->header_type == DLT_LINUX_SLL2) {
-		eth_header.ether_type = ((struct sll2_header *) payload)->sll2_protocol;
-		payload += sizeof(struct sll2_header);
+
+	switch (sniffer->header_type) {
+		case DLT_EN10MB:
+			eth_header = *(struct ether_header *) payload;
+			payload += sizeof(struct ether_header);
+			break;
+		case DLT_LINUX_SLL:
+			eth_header.ether_type = ((struct sll_header *) payload)->sll_protocol;
+			payload += sizeof(struct sll_header);
+			break;
+		case DLT_LINUX_SLL2:
+			eth_header.ether_type = ((struct sll2_header *) payload)->sll2_protocol;
+			payload += sizeof(struct sll2_header);
+			break;
+		default:
+			break;
 	}
 
 	// EtherType
