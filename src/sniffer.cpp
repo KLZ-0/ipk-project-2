@@ -17,6 +17,7 @@
 #include <iomanip>
 
 #define RFC3339_BUFLEN 128
+#define PCAP_DEFAULT_SNAPLEN 65535
 
 Sniffer::Sniffer(int argc, char **argv) {
 	config = new Config(argc, argv);
@@ -58,8 +59,7 @@ void Sniffer::run() {
 		throw std::runtime_error(errbuf);
 	}
 
-	// TODO: magic number
-	pcap_set_snaplen(pcap, 1024);
+	pcap_set_snaplen(pcap, PCAP_DEFAULT_SNAPLEN);
 	pcap_set_promisc(pcap, 0);
 	pcap_set_rfmon(pcap, 0);
 	pcap_set_timeout(pcap, 0);
@@ -256,7 +256,7 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 		std::cout << " : " << *dport;
 	}
 
-	std::cout << ", length " << header->len << std::endl;
+	std::cout << ", length " << header->len << " bytes" << std::endl;
 
 	// print the packet data
 	// offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
