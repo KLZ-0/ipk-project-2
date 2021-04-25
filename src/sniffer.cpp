@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <pcap/sll.h>
 
+#define RFC3339_BUFLEN 128
+
 Sniffer::Sniffer(int argc, char **argv) {
 	config = new Config(argc, argv);
 	if (config->only_interfaces) {
@@ -145,8 +147,36 @@ struct bpf_program Sniffer::set_filter(pcap_t *pcap) {
 	return program;
 }
 
+void print_time(struct timeval timeval) {
+	struct tm *timestruct = localtime(&timeval.tv_sec);
+	char buf[RFC3339_BUFLEN];
+	size_t l;
+
+	l = strftime(buf, RFC3339_BUFLEN - 1, "%FT%T", timestruct);
+	if (l == 0) {
+		return;
+	}
+
+	std::cout << buf << "." << std::to_string(timeval.tv_usec % 1000);
+
+	l = strftime(buf, RFC3339_BUFLEN - 1, "%z", timestruct);
+	if (l != 5) {
+		std::cout << std::endl;
+		return;
+	}
+
+	std::cout << buf[0] << buf[1] << buf[2] << ":" << buf[3] << buf[4]; // +-\d\d:\d\d
+}
+
 void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, const u_char *payload) {
 	auto *sniffer = (Sniffer*) user;
+
+//	čas IP : port > IP : port, length délka
+//	offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
+
+	std::cout << "Timestamp: ";
+	print_time(header->ts);
+	std::cout << std::endl;
 
 	std::cout << "Packet (";
 
