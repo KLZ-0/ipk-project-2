@@ -14,7 +14,7 @@ or
 Run (list available interfaces):
 ./ipk-sniffer -i
 
-Run (fetch one packet, any device, any port, any protocol):
+Run (catch one packet, any device, any port, any protocol):
 ./ipk-sniffer
 
 ------
