@@ -70,6 +70,10 @@ void Config::parse(int argc, char *argv[]) {
 				case 'p':
 					try {
 						port = std::stoi(nextarg);
+						if (port < 0) {
+							std::cerr << "Error: port cannot be negative" << std::endl;
+							std::exit(EXIT_FAILURE);
+						}
 					} catch (std::invalid_argument &e) {
 						std::cerr << "Conversion error" << std::endl;
 						std::exit(EXIT_FAILURE);
@@ -80,6 +84,10 @@ void Config::parse(int argc, char *argv[]) {
 				case 'n':
 					try {
 						num = std::stoi(nextarg);
+						if (num < 1) {
+							std::cerr << "Error: num cannot be smaller than 1" << std::endl;
+							std::exit(EXIT_FAILURE);
+						}
 					} catch (std::invalid_argument &e) {
 						std::cerr << "Conversion error" << std::endl;
 						std::exit(EXIT_FAILURE);
