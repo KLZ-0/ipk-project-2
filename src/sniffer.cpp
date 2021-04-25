@@ -18,6 +18,8 @@
 
 #define RFC3339_BUFLEN 128
 #define PCAP_DEFAULT_SNAPLEN 65535
+#define DATA_PER_LINE 0x0010u
+#define DUMP_CHUNKSIZE 8
 
 Sniffer::Sniffer(int argc, char **argv) {
 	config = new Config(argc, argv);
@@ -171,6 +173,7 @@ void print_time(struct timeval timeval) {
 }
 
 void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, const u_char *payload) {
+	const u_char *data_ptr = payload;
 	auto *sniffer = (Sniffer*) user;
 
 	char src_addr[INET6_ADDRSTRLEN] = {0};
@@ -260,4 +263,18 @@ void Sniffer::packet_callback(u_char *user, const struct pcap_pkthdr *header, co
 
 	// print the packet data
 	// offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
+
+
+	for (unsigned int offset = 0; offset < header->len; offset += DATA_PER_LINE) {
+		std::cout << "0x" << std::hex << std::setfill('0') << std::setw(4) << offset << ": ";
+
+		unsigned int remaining = header->len - offset;
+		for (unsigned int in_offset = 0; in_offset < DATA_PER_LINE && in_offset < remaining; in_offset++) {
+			if (in_offset % DUMP_CHUNKSIZE == 0) {
+				std::cout << " ";
+			}
+			std::cout << std::hex << std::setfill('0') << std::setw(2) << (int) data_ptr[offset + in_offset] << " ";
+		}
+		std::cout << std::endl;
+	}
 }
