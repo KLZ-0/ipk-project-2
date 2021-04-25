@@ -5,6 +5,7 @@ ipk-sniffer: src/main.cpp src/config.cpp src/config.h src/sniffer.cpp src/sniffe
 	g++ -Isrc -lpcap $^ -o $@
 
 pack:
+	cp doc/out/main.pdf manual.pdf
 	tar --exclude=CMakeLists.txt -cvf xkalaz00.tar src Makefile README manual.pdf
 
 clean:
