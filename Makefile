@@ -2,7 +2,7 @@ all: ipk-sniffer
 .PHONY: all clean pack
 
 ipk-sniffer: src/main.cpp src/config.cpp src/config.h src/sniffer.cpp src/sniffer.h
-	g++ -Isrc -lpcap $^ -o $@
+	g++ -Isrc $^ -o $@ -lpcap
 
 pack:
 	cp doc/out/main.pdf manual.pdf
